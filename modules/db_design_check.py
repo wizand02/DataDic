@@ -434,9 +434,6 @@ def show_db_design_check():
                     st.subheader("📝 설계 구조 점검 결과")
                     
                     sub_titles = ["속성명-컬럼명 불일치", "컬럼명-속성명 불일치", "속성명-도메인 불일치", "컬럼명-도메인 불일치"]
-                    if is_expert:
-                        sub_titles.append("🛠️ 쿼리 조회")
-                    
                     sub_tabs = st.tabs(sub_titles)
                     
                     with sub_tabs[0]:
@@ -451,20 +448,6 @@ def show_db_design_check():
                     with sub_tabs[3]:
                         st.markdown("##### 4. 컬럼명-도메인 불일치 (설계)")
                         st.dataframe(sorted_df(select_query(db_path, "SELECT * FROM 점검_설계_04_컬럼도메인비교")), use_container_width=True)
-                    if is_expert:
-                        with sub_tabs[4]:
-                            st.info("💡 설계 점검과 관련된 스크립트를 조회합니다.")
-                            for title, full_script in DESIGN_QUERY_LOOKUP.items():
-                                if "설계" in title and "구현" not in title:
-                                    with st.expander(f"📌 {title}", expanded=False):
-                                        st.code(full_script.strip(), language="sql")
-                            
-                            st.divider()
-                            st.markdown("##### ⚙️ 개별 점검용 상세 SQL (CREATE TABLE AS)")
-                            for tb_name, select_sql in DESIGN_SQL_DICT.items():
-                                if "설계" in tb_name and "비교" in tb_name and tb_name not in ["점검_설계구현비교", "점검_설계구현도메인비교"]:
-                                    with st.expander(f"🔍 {tb_name}", expanded=False):
-                                        st.code(f"CREATE TABLE {tb_name} AS\n" + select_sql.strip(), language="sql")
 
     with tabs[idx_impl_check]:
         with st.container():
@@ -532,9 +515,6 @@ def show_db_design_check():
                     st.subheader("📝 구현 구조 점검 결과")
                     
                     sub_titles = ["속성명-컬럼명 불일치", "컬럼명-속성명 불일치", "속성명-도메인 불일치", "컬럼명-도메인 불일치"]
-                    if is_expert:
-                        sub_titles.append("🛠️ 쿼리 조회")
-                    
                     sub_tabs = st.tabs(sub_titles)
                     
                     with sub_tabs[0]:
@@ -549,20 +529,6 @@ def show_db_design_check():
                     with sub_tabs[3]:
                         st.markdown("##### 4. 컬럼명-도메인 불일치 (구현)")
                         st.dataframe(sorted_df(select_query(db_path, "SELECT * FROM 점검_구현_04_컬럼도메인비교")), use_container_width=True)
-                    if is_expert:
-                        with sub_tabs[4]:
-                            st.info("💡 구현 점검과 관련된 스크립트를 조회합니다.")
-                            for title, full_script in DESIGN_QUERY_LOOKUP.items():
-                                if "구현" in title:
-                                    with st.expander(f"📌 {title}", expanded=False):
-                                        st.code(full_script.strip(), language="sql")
-                            
-                            st.divider()
-                            st.markdown("##### ⚙️ 개별 점검용 상세 SQL (CREATE TABLE AS)")
-                            for tb_name, select_sql in DESIGN_SQL_DICT.items():
-                                if "구현" in tb_name and "비교" in tb_name and tb_name not in ["점검_설계구현비교", "점검_설계구현도메인비교"]:
-                                    with st.expander(f"🔍 {tb_name}", expanded=False):
-                                        st.code(f"CREATE TABLE {tb_name} AS\n" + select_sql.strip(), language="sql")
 
     with tabs[idx_compare_check]:
         with st.container():
@@ -640,9 +606,6 @@ def show_db_design_check():
                     st.subheader("📝 세부 점검 결과")
                     
                     sub_titles = ["설계/구현 누락 비교", "도메인 불일치 비교"]
-                    if is_expert:
-                        sub_titles.append("🛠️ 쿼리 조회")
-                        
                     sub_tabs = st.tabs(sub_titles)
                     
                     with sub_tabs[0]:
@@ -653,17 +616,3 @@ def show_db_design_check():
                     with sub_tabs[1]:
                         st.markdown("##### 설계/구현 데이터타입(도메인) 불일치 내역")
                         st.dataframe(sorted_df(select_query(db_path, "SELECT * FROM 점검_설계구현도메인비교")), use_container_width=True)
-                    if is_expert:
-                        with sub_tabs[2]:
-                            st.info("💡 비교 점검과 관련된 스크립트를 조회합니다.")
-                            for title, full_script in DESIGN_QUERY_LOOKUP.items():
-                                if "비교" in title and ("도메인" in title or "누락" in title or "설계구현" in title):
-                                    with st.expander(f"📌 {title}", expanded=False):
-                                        st.code(full_script.strip(), language="sql")
-                            
-                            st.divider()
-                            st.markdown("##### ⚙️ 개별 점검용 상세 SQL (CREATE TABLE AS)")
-                            for tb_name, select_sql in DESIGN_SQL_DICT.items():
-                                if tb_name in ["점검_설계구현비교", "점검_설계구현도메인비교"]:
-                                    with st.expander(f"🔍 {tb_name}", expanded=False):
-                                        st.code(f"CREATE TABLE {tb_name} AS\n" + select_sql.strip(), language="sql")
