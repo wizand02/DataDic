@@ -142,7 +142,7 @@ def show_db_design_check():
 
     with tabs[idx_load]:
         with st.container():
-            st.markdown("##### 엑셀 데이터 업로드 및 테이블 매핑")
+            st.markdown("##### 엑셀 데이터 업로드 및 자동 적재")
 
             # 로딩 오버레이 CSS
             st.markdown("""
@@ -173,143 +173,33 @@ def show_db_design_check():
             )
 
             if uploaded_file:
-                if st.button("파일업로드 및 원본데이터적재", use_container_width=True, key="btn_upload_ori_dsn"):
+                if st.button("파일 업로드 및 자동 적재 실행", use_container_width=True, key="btn_upload_ori_dsn"):
                     overlay_placeholder.markdown("""
                     <div class='dsn-loading-overlay'>
                       <div class='dsn-loading-box'>
                         <div class='dsn-loading-spinner'>⚙️</div>
-                        <div class='dsn-loading-text'>데이터 적재 중...</div>
+                        <div class='dsn-loading-text'>데이터 적재 및 자동 매핑 중...</div>
                         <div class='dsn-loading-sub'>잠시만 기다려 주세요. 창을 닫지 마세요.</div>
                       </div>
                     </div>""", unsafe_allow_html=True)
 
                     with st.spinner("파일 적재 중..."):
                         loaded = load_excel_to_ori_dsn(db_path, uploaded_file)
+                    
                     st.session_state['dsn_check_loaded_sheets'] = loaded
                     if 'dsn_check_mapped_status' not in st.session_state:
                         st.session_state['dsn_check_mapped_status'] = {}
                     for s in loaded:
                         st.session_state['dsn_check_mapped_status'][s] = False
 
-                    if not is_expert:
-                        with st.spinner("심플 모드: 자동 매핑 및 저장 중..."):
-                            auto_map_and_save_dsn(db_path, loaded)
-                        overlay_placeholder.empty()
-                        import time
-                        st.toast(f"✅ {len(loaded)}개 시트 자동 매핑/저장 완료!", icon="✅")
-                        time.sleep(1.5)
-                        st.rerun()
-                    else:
-                        overlay_placeholder.empty()
-                        st.toast(f"✅ {len(loaded)}개 시트 ORI 테이블 적재 완료!", icon="✅")
-                        st.rerun()
-
-                loaded_sheets = st.session_state.get('dsn_check_loaded_sheets', [])
-
-                if loaded_sheets and is_expert:
-                    if 'dsn_check_mapped_status' not in st.session_state:
-                        st.session_state['dsn_check_mapped_status'] = {s: False for s in loaded_sheets}
-
-                    st.divider()
-                    st.markdown("#### 워크시트별 타겟 테이블 매핑")
-
-                    # 타겟 테이블 옵션 ('속성정의', '컬럼정의')
-                    target_options = list(TARGET_TABLE_SCHEMAS_DSN.keys())
-
-                    # 일괄 자동 매핑 및 저장
-                    if st.button("🚀 전체 워크시트 자동 매핑 및 저장", type="primary", use_container_width=True, key="btn_auto_map_all_dsn"):
-                        with st.spinner("전체 워크시트를 자동 매핑하여 저장합니다..."):
-                            auto_map_and_save_dsn(db_path, loaded_sheets)
-                        st.toast("✅ 전체 워크시트 자동 매핑 및 저장 완료!", icon="✅")
-                        import time; time.sleep(1.5)
-                        st.rerun()
-
-                    st.write("")
+                    with st.spinner("자동 매핑 및 적재 중..."):
+                        auto_map_and_save_dsn(db_path, loaded)
                     
-                    # 시트별 매핑 Expander
-                    for idx, sheet in enumerate(loaded_sheets):
-                        ori_tb_name = f"ORI_{sheet}"
-                        is_mapped = st.session_state['dsn_check_mapped_status'].get(sheet, False)
-                        status_icon = "✅ 완료" if is_mapped else "⏳ 대기"
-                        expander_title = f"📝 시트: {sheet} (👉 {ori_tb_name}) - {status_icon}"
-                        
-                        with st.expander(expander_title, expanded=False):
-                            # 매핑 대상 테이블 선택
-                            selected_target = st.selectbox(
-                                f"어떤 테이블로 저장하시겠습니까?", 
-                                options=target_options, 
-                                index=target_options.index(sheet) if sheet in target_options else 0,
-                                key=f"dsn_target_sel_{idx}"
-                            )
-                            
-                            target_columns = TARGET_TABLE_SCHEMAS_DSN[selected_target]
-                            
-                            # ORI 테이블의 실제 컬럼들 가져오기
-                            ori_cols_df = select_query(db_path, f"PRAGMA table_info({ori_tb_name})")
-                            if not ori_cols_df.empty:
-                                src_columns = ori_cols_df['name'].tolist()
-                            else:
-                                src_columns = []
-                            
-                            st.markdown(f"**[{ori_tb_name}] 컬럼 매핑 ➔ [{selected_target}]**")
-                            
-                            mapping_result = {}
-                            
-                            # 데이터 샘플(최상단 1개 행) 조회
-                            sample_row = {}
-                            if len(src_columns) > 0:
-                                sample_df = select_query(db_path, f"SELECT * FROM {ori_tb_name} LIMIT 1")
-                                if not sample_df.empty:
-                                    sample_row = sample_df.iloc[0].to_dict()
-                            
-                            # 컬럼 매핑 UI
-                            for i, src_col in enumerate(src_columns):
-                                c1, c2, c3 = st.columns([0.4, 0.1, 0.5])
-                                with c1:
-                                    sample_val = sample_row.get(src_col, "NULL/없음")
-                                    st.markdown(f"**{src_col}**", unsafe_allow_html=True)
-                                    st.markdown(f"<span style='color:gray; font-size:0.8rem;'>예: {sample_val}</span>", unsafe_allow_html=True)
-                                with c2:
-                                    st.markdown("<div style='padding-top:10px;text-align:center;'>➔</div>", unsafe_allow_html=True)
-                                with c3:
-                                    default_idx = target_columns.index(src_col) + 1 if src_col in target_columns else 0
-                                    mapped_col = st.selectbox(
-                                        "타겟 컬럼 선택",
-                                        options=["(매핑 안 함)"] + target_columns,
-                                        index=default_idx,
-                                        label_visibility="collapsed",
-                                        key=f"dsn_map_{idx}_{i}"
-                                    )
-                                    mapping_result[src_col] = mapped_col if mapped_col != "(매핑 안 함)" else None
-                                    
-                            if st.button("저장 실행", key=f"dsn_btn_save_{idx}"):
-                                # 개별 수동 저장 시 타겟 테이블 드롭 및 생성
-                                col_defs = [f'"{col}" VARCHAR(500)' for col in target_columns]
-                                create_sql = f"DROP TABLE IF EXISTS {selected_target};\nCREATE TABLE {selected_target} (\n  " + ",\n  ".join(col_defs) + "\n);"
-                                
-                                execute_query(db_path, f"DROP TABLE IF EXISTS {selected_target}_FULL") 
-                                execute_query(db_path, create_sql)
-                                
-                                # 매핑 결과에 따라 INSERT 생성
-                                mapped_targets = []
-                                mapped_sources = []
-                                for src_c, tgt_c in mapping_result.items():
-                                    if tgt_c:
-                                        mapped_targets.append(f'"{tgt_c}"')
-                                        mapped_sources.append(f'"{src_c}"')
-                                        
-                                if mapped_targets:
-                                    insert_sql = f"INSERT INTO {selected_target} ({', '.join(mapped_targets)}) SELECT {', '.join(mapped_sources)} FROM {ori_tb_name};"
-                                    execute_query(db_path, insert_sql)
-                                    st.session_state['dsn_check_mapped_status'][sheet] = True
-                                    drop_design_check_results(db_path)
-                                    st.toast(f"✅ `{selected_target}` 테이블에 데이터가 성공적으로 적재되었습니다.")
-                                    st.rerun()
-                                else:
-                                    st.session_state['dsn_check_mapped_status'][sheet] = True
-                                    drop_design_check_results(db_path)
-                                    st.toast(f"⚠️ `{selected_target}` 매핑된 컬럼이 없어 빈 테이블만 생성되었습니다.")
-                                    st.rerun()
+                    overlay_placeholder.empty()
+                    import time
+                    st.toast(f"✅ {len(loaded)}개 시트 자동 매핑 및 적재 완료!", icon="✅")
+                    time.sleep(1.5)
+                    st.rerun()
 
     if is_expert and idx_setting != -1:
         with tabs[idx_setting]:

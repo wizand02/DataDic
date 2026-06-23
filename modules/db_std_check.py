@@ -415,10 +415,9 @@ def show_db_std_check():
             has_dic_result = not select_query(db_path, "SELECT name FROM sqlite_master WHERE type='table' AND name='점검_단어_01_표준단어명재정의'").empty
             if has_dic_result:
                 st.divider()
-                sub_tabs = st.tabs(["표준 단어", "표준 용어", "🛠️ 쿼리 조회(사전)", "🔍 전체 데이터(ALL)"]) if is_expert else st.tabs(["표준 단어", "표준 용어", "🔍 전체 데이터(ALL)"])
+                sub_tabs = st.tabs(["표준 단어", "표준 용어", "🔍 전체 데이터(ALL)"])
                 tab_word, tab_term = sub_tabs[0], sub_tabs[1]
-                tab_query = sub_tabs[2] if is_expert else None
-                tab_all = sub_tabs[3] if is_expert else sub_tabs[2]
+                tab_all = sub_tabs[2]
                 
                 with tab_word:
                     for i, (title, tb) in enumerate([("1. 표준단어명 재정의", "점검_단어_01_표준단어명재정의"), ("2. 표준단어약어 재정의", "점검_단어_02_표준단어약어재정의"), ("3. 표준단어명 중복정의", "점검_단어_03_표준단어명중복정의"), ("4. 표준단어약어 중복정의", "점검_단어_04_표준단어약어중복정의")]):
@@ -430,12 +429,6 @@ def show_db_std_check():
                         st.markdown(f"##### {title}")
                         df = select_query(db_path, f"SELECT * FROM {tb}")
                         if not df.empty: st.dataframe(sorted_df(df), use_container_width=True)
-                if tab_query:
-                    with tab_query:
-                        st.info("💡 스크립트 정보")
-                        for t, s in STANDARDS_QUERY_LOOKUP.items():
-                            if "준수" not in t and "구성점검" not in t:
-                                with st.expander(f"📌 {t}"): st.code(s.strip(), language="sql")
                 with tab_all:
                     sc1, sc2, sc3 = st.columns(3)
                     if sc1.button("단어 요약", key="btn_word_sum"): st.session_state.show_all_std_chk = "word"
@@ -477,22 +470,8 @@ def show_db_std_check():
             has_res = not select_query(db_path, "SELECT name FROM sqlite_master WHERE name='표준용어_구성점검_RES'").empty
             if has_res:
                 st.divider()
-                if is_expert:
-                    c_tabs = st.tabs(["📊 결과", "🛠️ 조회 쿼리"])
-                    with c_tabs[0]:
-                        st.dataframe(select_query(db_path, "SELECT * FROM 표준용어_구성점검_RES WHERE 구성점검결과 = '비표준' AND 표준용어영문약어 IS NOT NULL"), use_container_width=True)
-                    with c_tabs[1]:
-                        st.info("💡 표준용어 구성 점검 스크립트")
-                        q1 = STANDARDS_QUERY_LOOKUP.get("표준용어_구성점검 (단어 분리 및 검증)", "")
-                        st.markdown("##### 1. 단어 분리 및 매핑")
-                        st.code(q1.strip(), language="sql")
-                        
-                        st.markdown("##### 2. 최종 결과 테이블 생성 (표준 우선으로 정리)")
-                        q2 = STANDARDS_SQL_DICT.get("표준용어_구성점검_RES", "")
-                        st.code(f"DROP TABLE IF EXISTS 표준용어_구성점검_RES;\nCREATE TABLE 표준용어_구성점검_RES AS \n" + q2.strip(), language="sql")
-                else:
-                    st.markdown("##### 결과 (비표준 항목)")
-                    st.dataframe(select_query(db_path, "SELECT * FROM 표준용어_구성점검_RES WHERE 구성점검결과 = '비표준' AND 표준용어영문약어 IS NOT NULL"), use_container_width=True)
+                st.markdown("##### 결과 (비표준 항목)")
+                st.dataframe(select_query(db_path, "SELECT * FROM 표준용어_구성점검_RES WHERE 구성점검결과 = '비표준' AND 표준용어영문약어 IS NOT NULL"), use_container_width=True)
 
     with tabs[idx_comp]:
         with st.container():
@@ -534,8 +513,6 @@ def show_db_std_check():
             if has_comp_res:
                 st.divider()
                 sub_titles = ["표준용어 미준수", "표준도메인 미준수", "🔍 전체 데이터"]
-                if is_expert:
-                    sub_titles.append("🛠️ 조회 쿼리")
                 sub_tabs = st.tabs(sub_titles)
                 
                 with sub_tabs[0]:
@@ -565,10 +542,3 @@ def show_db_std_check():
                     df = select_query(db_path, f"SELECT * FROM {m}") if not select_query(db_path, f"SELECT name FROM sqlite_master WHERE name='{m}'").empty else pd.DataFrame()
                     if kw and not df.empty: df = df[df.astype(str).apply(lambda r: r.str.contains(kw, case=False).any(), axis=1)]
                     st.dataframe(df, use_container_width=True)
-                
-                if is_expert:
-                    with sub_tabs[3]:
-                        st.info("💡 표준 준수 점검 스크립트")
-                        for t, s in STANDARDS_QUERY_LOOKUP.items():
-                            if "준수" in t:
-                                with st.expander(f"📌 {t}"): st.code(s.strip(), language="sql")
