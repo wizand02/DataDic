@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Distribution / Build
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (Exclude database files, keep data clean)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+
+# Excel files are usually excluded
+*.xlsx
+*.xls
+
+# EXCEPTIONS for required assets
+!asset/IN_DATA_CHK_FILE.xlsx
+
+# Temporary / Log files
+*.log
+tmp/
+temp/
