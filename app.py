@@ -18,7 +18,7 @@ def get_asset_path(relative_path):
 
 # 페이지 기본 설정
 st.set_page_config(
-    page_title="DataDic - DB 표준/설계 점검 도구",
+    page_title="DataDic",
     page_icon="🛠️",
     layout="wide",
     initial_sidebar_state="expanded",
