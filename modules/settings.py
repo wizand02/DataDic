@@ -1,8 +1,6 @@
 import streamlit as st
 import os
 import config
-import tkinter as tk
-from tkinter import filedialog
 import sqlite3
 import pandas as pd
 import uuid
@@ -72,12 +70,18 @@ def load_project(full_path, db_path=None, show_toast=True, update_ui=True):
         return False
 
 def select_folder():
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes('-topmost', True)
-    folder_path = filedialog.askdirectory(master=root)
-    root.destroy()
-    return folder_path
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        folder_path = filedialog.askdirectory(master=root)
+        root.destroy()
+        return folder_path
+    except Exception as e:
+        st.error("⚠️ 현재 실행 환경(예: Streamlit Cloud)에서는 폴더 선택 창을 지원하지 않습니다. 아래 경로 입력창에 직접 입력해 주세요.")
+        return None
 
 def init_settings_session():
     # 1. 근본 변수 초기화 (AttributeError 방지)
