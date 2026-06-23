@@ -11,7 +11,7 @@ APP_VERSION = "1.0.0"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 글로벌 설정 DB 경로
-GLOBAL_CONFIG_DB_PATH = r"c:\gndq\gndq.db"
+GLOBAL_CONFIG_DB_PATH = "./gndq.db"
 
 # 생성할 기본 폴더 구조 정의
 DEFAULT_PROJECT_FOLDERS = [
