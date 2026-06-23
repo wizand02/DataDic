@@ -7,6 +7,9 @@ from modules.settings import load_project
 
 import os
 import sys
+import uuid
+import shutil
+import time
 
 def get_asset_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
@@ -80,22 +83,50 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+def cleanup_temp_projects(temp_base_dir, max_age_hours=3):
+    """생성된 지 일정 시간 이상 지난 임시 폴더 삭제"""
+    if not os.path.exists(temp_base_dir):
+        return
+    now = time.time()
+    max_age_sec = max_age_hours * 3600
+    try:
+        for folder_name in os.listdir(temp_base_dir):
+            folder_path = os.path.join(temp_base_dir, folder_name)
+            if os.path.isdir(folder_path):
+                mtime = os.path.getmtime(folder_path)
+                if (now - mtime) > max_age_sec:
+                    shutil.rmtree(folder_path, ignore_errors=True)
+    except Exception as e:
+        pass
+
 def initialize_app():
     """앱 초기화 로직: 글로벌 DB 생성 및 기본 프로젝트 자동 로드"""
-    init_global_config_db()
-    
     # 지은모드/심플모드를 제거하고 항상 전체 고급 기능을 활성화
     st.session_state.app_mode_toggle = True
     
+    # 세션별 격리 ID 발급
+    if 'session_id' not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
+        
+    # 세션별 격리 경로 설정 및 폴더 생성
+    temp_base = os.path.join(os.getcwd(), "temp_projects")
+    session_dir = os.path.join(temp_base, st.session_state.session_id)
+    if not os.path.exists(session_dir):
+        os.makedirs(session_dir)
+        
+    # 주기적으로 오래된 임시 파일 청소 실행
+    cleanup_temp_projects(temp_base, max_age_hours=3)
+    
+    # 글로벌 설정 DB 경로를 세션 디렉토리 내부로 동적 지정
+    config.GLOBAL_CONFIG_DB_PATH = os.path.join(session_dir, "gndq.db")
+    
+    # 세션별 격리된 설정 DB 및 테이블 초기화
+    init_global_config_db()
+    
     if 'current_project_path' not in st.session_state:
-        recent_path, recent_db = get_recent_project()
-        if recent_path and os.path.exists(recent_path):
-            load_project(recent_path, db_path=recent_db, show_toast=False)
-        else:
-            # 설정된 경로가 없거나 유효하지 않은 경우 현재 작업 디렉토리를 기본값으로 자동 로드
-            default_project_path = os.getcwd()
-            default_db_path = os.path.join(default_project_path, "DataDic.db")
-            load_project(default_project_path, db_path=default_db_path, show_toast=False)
+        # 항상 격리된 세션별 데이터베이스 사용
+        default_db_path = os.path.join(session_dir, "DataDic.db")
+        load_project(session_dir, db_path=default_db_path, show_toast=False)
             
     if 'last_menu_selection' not in st.session_state:
         st.session_state.last_menu_selection = get_app_config('last_menu_selection', '🎯 DB표준점검')
