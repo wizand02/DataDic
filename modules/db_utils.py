@@ -626,7 +626,7 @@ CREATE TABLE ALL_단어 (
 INSERT INTO ALL_단어 SELECT 표준단어, 표준단어영문약서, 형식단어여부, '-', '10' FROM 단어;
 INSERT INTO ALL_단어 SELECT 기관표준단어, 기관표준단어영문약서, 형식단어여부, '-', '20' FROM 기관표준단어;
 INSERT INTO ALL_단어 (단어, 단어약어, 형식단어여부, 도메인분류, 정의수준) 
-SELECT 공통표준단어명, 공통표준단어영문약어명, "형식단어\\n여부", 공통표준도메인분류명, '30' 
+SELECT 공통표준단어명, 공통표준단어영문약어명, 형식단어여부, 공통표준도메인분류명, '30' 
 FROM 공통표준단어 WHERE "제정차수(제정연월)" NOT LIKE '%(폐기)%';
 
 -- 3. 이음동의어 확장 (Python에서 콤마 분리 후 중복 제거 삽입)
@@ -1068,7 +1068,11 @@ def check_compliance(db_path, progress=None):
     if not execute_query(db_path, """
         DROP TABLE IF EXISTS _WORK_속성정의;
         CREATE TABLE _WORK_속성정의 AS
-        SELECT *, REPLACE("속성(한글)", ' ', '') as norm_속성명
+        SELECT 순번, "엔터티(한글)", "테이블(영문)", 
+               REGEXP_REPLACE("컬럼(영문)", '(_?[0-9]+)$', '') as "컬럼(영문)", 
+               REGEXP_REPLACE("속성(한글)", '(_?[0-9]+)$', '') as "속성(한글)", 
+               "속성(데이터타입)", "식별자여부",
+               REPLACE(REGEXP_REPLACE("속성(한글)", '(_?[0-9]+)$', ''), ' ', '') as norm_속성명
         FROM 속성정의
         WHERE "테이블(영문)" NOT IN (SELECT TABLE_NAME FROM 표준화대상테이블 WHERE STANDARD_YN = 'N');
     """): success = False
