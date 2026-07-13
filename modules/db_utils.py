@@ -1064,18 +1064,31 @@ def check_compliance(db_path, progress=None):
     
     # --- 임시 작업용 테이블 생성 (REPLACE 결과 물리화) ---
     if progress: progress.start("속성/용어 정규화 임시 테이블 생성")
-    # 속성정의 → REPLACE 결과 물리화
-    if not execute_query(db_path, """
-        DROP TABLE IF EXISTS _WORK_속성정의;
-        CREATE TABLE _WORK_속성정의 AS
-        SELECT 순번, "엔터티(한글)", "테이블(영문)", 
-               REGEXP_REPLACE("컬럼(영문)", '(_?[0-9]+)$', '') as "컬럼(영문)", 
-               REGEXP_REPLACE("속성(한글)", '(_?[0-9]+)$', '') as "속성(한글)", 
-               "속성(데이터타입)", "식별자여부",
-               REPLACE(REGEXP_REPLACE("속성(한글)", '(_?[0-9]+)$', ''), ' ', '') as norm_속성명
-        FROM 속성정의
-        WHERE "테이블(영문)" NOT IN (SELECT TABLE_NAME FROM 표준화대상테이블 WHERE STANDARD_YN = 'N');
-    """): success = False
+    
+    # 속성정의 테이블을 읽어와서 파이썬에서 순번 제거 후 _WORK_속성정의 생성
+    try:
+        df_attr = select_query(db_path, 'SELECT * FROM 속성정의 WHERE "테이블(영문)" NOT IN (SELECT TABLE_NAME FROM 표준화대상테이블 WHERE STANDARD_YN = \'N\')')
+        if not df_attr.empty:
+            def remove_trailing_seq(val):
+                if pd.isna(val) or not isinstance(val, str):
+                    return val
+                return re.sub(r'(_?[0-9]+)$', '', val.strip())
+            
+            df_attr['컬럼(영문)'] = df_attr['컬럼(영문)'].apply(remove_trailing_seq)
+            df_attr['속성(한글)'] = df_attr['속성(한글)'].apply(remove_trailing_seq)
+            df_attr['norm_속성명'] = df_attr['속성(한글)'].apply(lambda x: str(x).replace(' ', '') if pd.notna(x) else '')
+            
+            conn = get_db_connection(db_path)
+            execute_query(db_path, "DROP TABLE IF EXISTS _WORK_속성정의")
+            df_attr.to_sql('_WORK_속성정의', conn, if_exists='replace', index=False)
+            conn.close()
+        else:
+            execute_query(db_path, "DROP TABLE IF EXISTS _WORK_속성정의")
+            execute_query(db_path, 'CREATE TABLE _WORK_속성정의 AS SELECT *, \'\' as norm_속성명 FROM 속성정의 WHERE 1=0')
+    except Exception as e:
+        st.error(f"속성정의 정규화 임시 테이블 생성 오류: {e}")
+        success = False
+
     # ALL_용어 → REPLACE 결과 물리화
     if not execute_query(db_path, """
         DROP TABLE IF EXISTS _WORK_ALL_용어;
