@@ -1,5 +1,5 @@
 
 
 git add .
-git commit -m "feat: 속성/컬럼명 뒤의 순번 제거 로직 추가 및 공통표준단어 개행 형식 수정"
+git commit -m "feat: 표준도메인 준수 점검 수정"
 git push --set-upstream origin main
