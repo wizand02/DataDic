@@ -3,3 +3,5 @@
 git add .
 git commit -m "feat: 표준도메인 준수 점검 수정"
 git push --set-upstream origin main
+
+streamlit run app.py
